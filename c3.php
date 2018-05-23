@@ -334,9 +334,15 @@ if ($requested_c3_report) {
 	$cache_report = null;
 	if (isset($_SERVER['HTTP_X_CODECEPTION_CODECOVERAGE_SUITE'])) {
 		$suite = $_SERVER['HTTP_X_CODECEPTION_CODECOVERAGE_SUITE'];
-		$cache_report = $path . $suite . 'cache.serialized';
+        $cache_path = $path . $suite . 'cache.serialized';
+        if (file_exists($cache_path) and flock(fopen($cache_path, 'r+'), LOCK_SH)) {
+            $cache_report = $cache_path;
+        }
 	}
-    list($codeCoverage, ) = __c3_factory($cache_report);
+    list($codeCoverage, $fileLock) = __c3_factory($cache_report);
+    if (! file_exists($cache_path)) {
+        file_put_contents($cache_path, serialize($codeCoverage), LOCK_EX);
+    }
     $codeCoverage->start(C3_CODECOVERAGE_TESTNAME);
     if (!array_key_exists('HTTP_X_CODECEPTION_CODECOVERAGE_DEBUG', $_SERVER)) {
         register_shutdown_function(
